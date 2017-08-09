@@ -190,7 +190,7 @@ def plot(img1, img2, img3, color_binary, combined_binary, combined_image_masked,
     plt.show()
 
 
-def generate_roi(image, apex_relative_pos=[0.5, 0.6], apex_relative_width=0.05):
+def generate_roi(image, apex_relative_pos, apex_relative_width):
     """
     generate region of interest (polygon with four vertices)
     :param image: input image
@@ -235,16 +235,19 @@ def region_of_interest(img, vertices):
     return masked_image
 
 
-def pipeline(img):
+def pipeline(img, to_plot=False):
     """
     the tested pipeline for thresholding
     :param img: image as input
+    :param to_plot: if True, plot and show the processed image
     :return: binary image where 1 represent lane line, 0 represent not lane line
     """
 
     color_thresh = (200, 255)
     sobel_mag_thresh = (40, 255)
     sobel_direct_thresh = (0.7, 1.3)
+    apex_relative_pos = (0.5, 0.6)
+    apex_relative_width = 0.05
 
     color_binary, sobel_mag_binary, sobel_direct_binary = image_threshhold_filter(img, color_thresh=color_thresh,
                                                                                   sobel_mag_thresh=sobel_mag_thresh,
@@ -254,13 +257,16 @@ def pipeline(img):
 
     # final output
     combined_binary = combine_binary_or(color_binary, combine_binary_and(sobel_mag_binary, sobel_direct_binary))
-    combined_binary_masked = region_of_interest(combined_binary, generate_roi(combined_binary))
+    combined_binary_masked = region_of_interest(combined_binary, generate_roi(combined_binary,
+                                                                              apex_relative_pos=apex_relative_pos,
+                                                                              apex_relative_width=apex_relative_width))
 
-    fig_title = "%s color_thresh: %s, sobel_mag_thresh: %s, sobel_direct_thresh %s" \
-                % (image_name, color_thresh, sobel_mag_thresh, sobel_direct_thresh)
+    if to_plot:
+        fig_title = "%s color_thresh: %s, sobel_mag_thresh: %s, sobel_direct_thresh %s" \
+                    % (image_name, color_thresh, sobel_mag_thresh, sobel_direct_thresh)
 
-    plot(color_binary, sobel_mag_binary, combine_binary_and(sobel_mag_binary, sobel_direct_binary),
-         color_binary_stacked, combined_binary, combined_binary_masked, fig_title)
+        plot(color_binary, sobel_mag_binary, combine_binary_and(sobel_mag_binary, sobel_direct_binary),
+             color_binary_stacked, combined_binary, combined_binary_masked, fig_title)
 
     return combined_binary_masked
 
@@ -270,7 +276,7 @@ if __name__ == '__main__':
     image_name = 'test3'
     image_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'test_images', image_name + '.jpg'))
     img = cv2.imread(image_path)
-    line_binary = pipeline(img)
+    line_binary = pipeline(img, True)
 
     line = np.dstack((line_binary * 255, np.zeros_like(line_binary), np.zeros_like(line_binary)))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

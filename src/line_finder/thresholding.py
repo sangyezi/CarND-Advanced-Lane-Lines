@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def get_sobelx(img, ksize=5):
+def get_sobelx(img, ksize=3):
     """
     calculate sobel derivative in x direction, take absolute value and scale it
     :param img: image as input
@@ -16,7 +16,7 @@ def get_sobelx(img, ksize=5):
     return scaled_sobelx
 
 
-def get_sobely(img, ksize=5):
+def get_sobely(img, ksize=3):
     """
     calculate sobel derivative in y direction, take absolute value and scale it
     :param img: image as input
@@ -115,7 +115,7 @@ def color_stack(*images):
         return np.dstack((images[0], images[1], images[2]))
 
 
-def image_threshhold_filter(img, color_thresh, sobel_mag_thresh, sobel_direct_thresh):
+def image_threshold_filter(img, color_thresh, sobel_mag_thresh, sobel_direct_thresh):
     """
     generate filtered images
     :param img: original image (should use undistorted 3-channel image)
@@ -124,23 +124,20 @@ def image_threshhold_filter(img, color_thresh, sobel_mag_thresh, sobel_direct_th
     :param sobel_direct_thresh: threshold for sobel direction
     :return: binary images represent color filtered, sobel magnitude filtered and sobel direction filtered
 
-    Note: gray or red channel are not as good as s channel, in any regards
-    also, sobel_mag and sobel_direction are more general than sobelx and sobely
-    So those processing were not used in final result
     """
-    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # r_channel = img[:, :, 2]
     s_channel = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)[:, :, 2]
 
-    # gray_binary = threshold_binary(gray, color_thresh)
+    gray_binary = threshold_binary(gray, color_thresh)
     # r_binary = threshold_binary(r_channel, color_thresh)
     s_binary = threshold_binary(s_channel, color_thresh)
 
-    color_binary = s_binary
+    color_binary = combine_binary_and(s_binary, gray_binary)
 
-    single_channel = s_channel
-    # sobelx = get_sobelx(single_channel)
-    # sobelx_binary = threshold_binary(sobelx, sobel_mag_thresh)
+    single_channel = gray
+    sobelx = get_sobelx(single_channel)
+    sobelx_binary = threshold_binary(sobelx, sobel_mag_thresh)
 
     # sobely = get_sobely(single_channel)
     # sobely_binary = threshold_binary(sobely, sobel_mag_thresh)
@@ -151,7 +148,7 @@ def image_threshhold_filter(img, color_thresh, sobel_mag_thresh, sobel_direct_th
     sobel_direct = get_sobel_direct(single_channel)
     sobel_direct_binary = threshold_binary(sobel_direct, sobel_direct_thresh)
 
-    return color_binary, sobel_mag_binary, sobel_direct_binary
+    return color_binary, sobelx_binary, sobel_direct_binary
 
 
 def plot(img1, img2, img3, color_binary, combined_binary, combined_image_masked, text):
@@ -243,15 +240,15 @@ def pipeline(img, to_plot=False):
     :return: binary image where 1 represent lane line, 0 represent not lane line
     """
 
-    color_thresh = (200, 255)
-    sobel_mag_thresh = (40, 255)
-    sobel_direct_thresh = (0.7, 1.3)
+    color_thresh = (130, 255)
+    sobel_mag_thresh = (20, 100)
+    sobel_direct_thresh = (0.5, 1.2)
     apex_relative_pos = (0.5, 0.6)
     apex_relative_width = 0.05
 
-    color_binary, sobel_mag_binary, sobel_direct_binary = image_threshhold_filter(img, color_thresh=color_thresh,
-                                                                                  sobel_mag_thresh=sobel_mag_thresh,
-                                                                                  sobel_direct_thresh=sobel_direct_thresh)
+    color_binary, sobel_mag_binary, sobel_direct_binary = image_threshold_filter(img, color_thresh=color_thresh,
+                                                                                 sobel_mag_thresh=sobel_mag_thresh,
+                                                                                 sobel_direct_thresh=sobel_direct_thresh)
 
     color_binary_stacked = color_stack(color_binary, sobel_mag_binary, sobel_direct_binary)
 
@@ -273,7 +270,7 @@ def pipeline(img, to_plot=False):
 
 if __name__ == '__main__':
     base_dir = os.path.dirname(__file__)
-    image_name = 'test3'
+    image_name = 'test2'
     image_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'test_images', image_name + '.jpg'))
     img = cv2.imread(image_path)
     line_binary = pipeline(img, True)

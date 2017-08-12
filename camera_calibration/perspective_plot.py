@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+import config as cfg
 
 
 def unwarp_chessboard(img, row_number, col_number, offset):
@@ -36,15 +36,11 @@ def unwarp_chessboard(img, row_number, col_number, offset):
 
 def main():
     image_name = 'calibration8'
-    base_dir = os.path.dirname(__file__)
-    # img_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal', image_name + '.jpg'))
-    # note calibration2: undistorted image cannot find corners correctly, has to use the original image, as above
+    img_path = cfg.join_path(cfg.camera_calibration['output'], image_name + '_undistorted.jpg')
+    warped_img_path = cfg.join_path(cfg.camera_calibration['output'], image_name + '_warped.jpg')
 
-    img_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal_corners', image_name + '_undistorted.jpg'))
-    warped_img_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal_corners', image_name + '_warped.jpg'))
-
-    grid_rows = 6
-    grid_columns = 9
+    grid_rows = cfg.camera_calibration['grid_rows']
+    grid_columns = cfg.camera_calibration['grid_columns']
     offset = 0
 
     img = cv2.imread(img_path)

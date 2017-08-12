@@ -1,7 +1,7 @@
 import pickle
 import cv2
 import matplotlib.pyplot as plt
-import os
+import config as cfg
 
 
 class Undistort:
@@ -12,7 +12,7 @@ class Undistort:
         """
         initiation, read camera matrix and distort coefficient from disk
         """
-        camera_pickle_path = 'wide_dist_pickle.p'
+        camera_pickle_path = cfg.camera_calibration['pickle_filename']
 
         try:
             dist_pickle = pickle.load(open(camera_pickle_path, "rb"))
@@ -55,18 +55,18 @@ class Undistort:
         else:
             plt.show()
 
+
 def main():
     undistort = Undistort()
 
-    base_dir = os.path.dirname(__file__)
-    image_name = 'calibration1'
-    image_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal', image_name + '.jpg'))
+    image_name = 'calibration10'
+    image_path = cfg.join_path(cfg.camera_calibration['input'], image_name + '.jpg')
+
     img = cv2.imread(image_path)
 
-    undistorted_img_save_path = os.path.abspath(
-        os.path.join(base_dir, '..', '..', 'camera_cal_corners', image_name + '_undistorted.jpg'))
-    contrast_images_save_path = os.path.abspath(
-        os.path.join(base_dir, '..', '..', 'camera_cal_corners', image_name + '_contrast.jpg'))
+    undistorted_img_save_path = cfg.join_path(cfg.camera_calibration['output'], image_name + '_undistorted.jpg')
+
+    contrast_images_save_path = cfg.join_path(cfg.camera_calibration['output'], image_name + '_contrast.jpg')
 
     undistorted_img = undistort.undistort_image(img)
     cv2.imwrite(undistorted_img_save_path, undistorted_img)

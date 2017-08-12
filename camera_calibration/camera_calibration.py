@@ -1,9 +1,8 @@
 import pickle
 import cv2
 import numpy as np
-import os
 import glob
-
+import config as cfg
 
 def find_corners(image_paths, image_output_folder, row_number, col_number,
                  obj_points_filename=None, img_points_filename=None):
@@ -18,9 +17,6 @@ def find_corners(image_paths, image_output_folder, row_number, col_number,
     :param img_points_filename: filename to save the image points
     :return: object points and image points
     """
-
-    if not os.path.exists(image_output_folder):
-        os.makedirs(image_output_folder)
 
     # Arrays to store object points and image points from ALL the images.
     obj_points = []  # 3d points in real world space
@@ -47,7 +43,7 @@ def find_corners(image_paths, image_output_folder, row_number, col_number,
 
                 # Draw and display the corners
                 cv2.drawChessboardCorners(img, (col_number, row_number), corners, ret)
-                write_name = os.path.join(image_output_folder, file_name.split('/')[-1])
+                write_name = cfg.join_path(image_output_folder, file_name.split('/')[-1])
                 cv2.imwrite(write_name, img)
                 # cv2.imshow('img', img)
                 # cv2.waitKey(500)
@@ -59,7 +55,7 @@ def find_corners(image_paths, image_output_folder, row_number, col_number,
     return obj_points, img_points
 
 
-def camera_calibration(obj_points, img_points, img_size, pickle_filename):
+def camera_calibration(obj_points, img_points, img_size, pickle_filename=None):
     """
     calibrate camera, and save the calibration result in pickle file
     :param obj_points: object points
@@ -72,32 +68,31 @@ def camera_calibration(obj_points, img_points, img_size, pickle_filename):
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, img_size, None, None)
 
     # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
-    dist_pickle = dict()
-    dist_pickle["mtx"] = mtx
-    dist_pickle["dist"] = dist
-    pickle.dump(dist_pickle, open(pickle_filename, "wb"))
+    if pickle_filename:
+        dist_pickle = dict()
+        dist_pickle["mtx"] = mtx
+        dist_pickle["dist"] = dist
+        pickle.dump(dist_pickle, open(pickle_filename, "wb"))
     return [mtx, dist]
 
 
 def main():
-    grid_rows = 6
-    grid_columns = 9
-    base_dir = os.path.dirname(__file__)
 
-    image_folder = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal/calibration*.jpg'))
-    image_paths = glob.glob(image_folder)
-    image_output_folder = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal_corners'))
+    input_path = cfg.camera_calibration['input']
 
-    obj_points, img_points = find_corners(image_paths, image_output_folder, grid_rows, grid_columns)
+    if input_path is not None:
+        image_paths = glob.glob(cfg.join_path(input_path, 'calibration*.jpg'))
 
-    image_name = 'calibration8'
-    image_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'camera_cal', image_name + '.jpg'))
-    img = cv2.imread(image_path)
-    img_size = (img.shape[1], img.shape[0])
+        obj_points, img_points = find_corners(image_paths, cfg.camera_calibration['output'],
+                                              cfg.camera_calibration['grid_rows'],
+                                              cfg.camera_calibration['grid_columns'])
 
-    pickle_filename = "wide_dist_pickle.p"
+        image_name = 'calibration8'
+        image_path = cfg.join_path(input_path, image_name + '.jpg')
+        img = cv2.imread(image_path)
+        img_size = (img.shape[1], img.shape[0])
 
-    [mtx, dist] = camera_calibration(obj_points, img_points, img_size,  pickle_filename)
+        camera_calibration(obj_points, img_points, img_size, cfg.camera_calibration['pickle_filename'])
 
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+import config as cfg
+from camera_calibration.undistort_image import Undistort
 
 
 def get_sobelx(img, ksize=3):
@@ -269,10 +270,13 @@ def pipeline(img, to_plot=False):
 
 
 if __name__ == '__main__':
-    base_dir = os.path.dirname(__file__)
     image_name = 'test2'
-    image_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'test_images', image_name + '.jpg'))
+    image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = cv2.imread(image_path)
+
+    undistort = Undistort()
+    img = undistort.undistort_image(img)
+
     line_binary = pipeline(img, True)
 
     line = np.dstack((line_binary * 255, np.zeros_like(line_binary), np.zeros_like(line_binary)))

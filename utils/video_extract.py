@@ -1,6 +1,6 @@
 import cv2
-import os
-import pickle
+import config as cfg
+from camera_calibration.undistort_image import Undistort
 
 
 def video_frame_generator(video_path):
@@ -36,21 +36,12 @@ def video_extract(video_path, output_path, transform):
 
 
 def main():
-    base_dir = os.path.dirname(__file__)
-    video_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'project_video.mp4'))
+    video_name = 'project_video'
 
-    output_path = os.path.abspath(os.path.join(base_dir, '..', '..', 'project_video_frames_undistorted'))
+    video_path = cfg.join_path(cfg.video_path['videos'], video_name + '.mp4')
+    output_path = cfg.create_if_not_exist(cfg.join_path(cfg.video_path['frames'], video_name))
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    camera_pickle_path = os.path.abspath(os.path.join(base_dir, '..', 'camera_calibration/wide_dist_pickle.p'))
-
-    dist_pickle = pickle.load(open(camera_pickle_path, "rb"))
-    mtx = dist_pickle["mtx"]
-    dist = dist_pickle["dist"]
-
-    undistort = lambda img: cv2.undistort(img, mtx, dist, None, mtx)
+    undistort = Undistort().undistort_image
 
     video_extract(video_path, output_path, undistort)
 

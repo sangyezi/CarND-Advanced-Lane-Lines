@@ -4,6 +4,7 @@ import numpy as np
 import glob
 import config as cfg
 
+
 def find_corners(image_paths, image_output_folder, row_number, col_number,
                  obj_points_filename=None, img_points_filename=None):
     """
@@ -55,24 +56,24 @@ def find_corners(image_paths, image_output_folder, row_number, col_number,
     return obj_points, img_points
 
 
-def camera_calibration(obj_points, img_points, img_size, pickle_filename=None):
+def camera_calibration(obj_points, img_points, img_size, camera_calibration_file=None):
     """
     calibrate camera, and save the calibration result in pickle file
     :param obj_points: object points
     :param img_points: image points
     :param img_size: image size
-    :param pickle_filename: pickle file name
+    :param camera_calibration_file: camera calibration file
     :return: camera matrix and distortion coefficient from calibration
     """
     # Do camera calibration given object points and image points
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, img_size, None, None)
 
     # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
-    if pickle_filename:
+    if camera_calibration_file:
         dist_pickle = dict()
         dist_pickle["mtx"] = mtx
         dist_pickle["dist"] = dist
-        pickle.dump(dist_pickle, open(pickle_filename, "wb"))
+        pickle.dump(dist_pickle, open(camera_calibration_file, "wb"))
     return [mtx, dist]
 
 
@@ -92,7 +93,7 @@ def main():
         img = cv2.imread(image_path)
         img_size = (img.shape[1], img.shape[0])
 
-        camera_calibration(obj_points, img_points, img_size, cfg.camera_calibration['pickle_filename'])
+        camera_calibration(obj_points, img_points, img_size, cfg.camera_calibration['camera_calibration_file'])
 
 
 if __name__ == '__main__':

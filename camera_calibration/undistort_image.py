@@ -12,7 +12,7 @@ class Undistort:
         """
         initiation, read camera matrix and distort coefficient from disk
         """
-        camera_pickle_path = cfg.camera_calibration['pickle_filename']
+        camera_pickle_path = cfg.camera_calibration['camera_calibration_file']
 
         try:
             dist_pickle = pickle.load(open(camera_pickle_path, "rb"))
@@ -59,7 +59,7 @@ class Undistort:
 def main():
     undistort = Undistort()
 
-    image_name = 'calibration10'
+    image_name = 'calibration1'
     image_path = cfg.join_path(cfg.camera_calibration['input'], image_name + '.jpg')
 
     img = cv2.imread(image_path)

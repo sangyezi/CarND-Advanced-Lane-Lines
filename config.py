@@ -23,12 +23,13 @@ camera_calibration = {
     'output':  create_if_not_exist(join_path(base_dir, 'resources', 'images', 'camera_cal_corners')),
     'grid_rows': 6,
     'grid_columns': 9,
-    'pickle_filename': return_if_exist(join_path(base_dir, 'camera_calibration', 'wide_dist_pickle.p'))
+    'camera_calibration_file': join_path(base_dir, 'camera_calibration', 'camera_data.p')
 }
 
 line_finder = {
     'input': return_if_exist(join_path(base_dir, 'resources', 'images', 'test_images')),
-    'output': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'output_images'))
+    'output': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'output_images')),
+    'perspective_matrix_file': join_path(base_dir, 'line_finder', 'warp_matrix.p')
 }
 
 video_path = {

@@ -266,20 +266,29 @@ def pipeline(img, to_plot=False):
         plot(color_binary, sobel_mag_binary, combine_binary_and(sobel_mag_binary, sobel_direct_binary),
              color_binary_stacked, combined_binary, combined_binary_masked, fig_title)
 
-    return combined_binary_masked
+
+    return combined_binary, combined_binary_masked
 
 
 if __name__ == '__main__':
-    image_name = 'test2'
+    image_name = 'test3'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = cv2.imread(image_path)
 
     undistort = Undistort()
     img = undistort.undistort_image(img)
 
-    line_binary = pipeline(img, True)
+    combined_binary_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold.jpg')
+    combined_binary_mask_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold_masked.jpg')
+    img_line_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold_lane.jpg')
 
-    line = np.dstack((line_binary * 255, np.zeros_like(line_binary), np.zeros_like(line_binary)))
+    combined_binary, combined_binary_masked = pipeline(img, False)
+
+    line = np.dstack((combined_binary_masked * 255, np.zeros_like(combined_binary_masked), np.zeros_like(combined_binary_masked)))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_line = cv2.addWeighted(img, 1, line, 1, 0)
-    #todo: plot img_line
+    img_line = cv2.cvtColor(img_line, cv2.COLOR_BGR2RGB)
+
+    cv2.imwrite(combined_binary_path, combined_binary * 255)
+    cv2.imwrite(combined_binary_mask_path, combined_binary_masked * 255)
+    cv2.imwrite(img_line_path, img_line)

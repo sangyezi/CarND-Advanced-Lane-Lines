@@ -266,12 +266,10 @@ def pipeline(img, to_plot=False):
         plot(color_binary, sobel_mag_binary, combine_binary_and(sobel_mag_binary, sobel_direct_binary),
              color_binary_stacked, combined_binary, combined_binary_masked, fig_title)
 
-
     return combined_binary, combined_binary_masked
 
-
 if __name__ == '__main__':
-    image_name = 'test3'
+    image_name = 'test6'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = cv2.imread(image_path)
 

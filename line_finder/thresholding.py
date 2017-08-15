@@ -233,7 +233,7 @@ def region_of_interest(img, vertices):
     return masked_image
 
 
-def pipeline(img, to_plot=False):
+def threshold_pipeline(img, to_plot=False):
     """
     the tested pipeline for thresholding
     :param img: image as input
@@ -280,7 +280,7 @@ if __name__ == '__main__':
     combined_binary_mask_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold_masked.jpg')
     img_line_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold_lane.jpg')
 
-    combined_binary, combined_binary_masked = pipeline(img, False)
+    combined_binary, combined_binary_masked = threshold_pipeline(img, False)
 
     line = np.dstack((combined_binary_masked * 255, np.zeros_like(combined_binary_masked), np.zeros_like(combined_binary_masked)))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

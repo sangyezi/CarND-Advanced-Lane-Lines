@@ -6,6 +6,25 @@ from line_finder.transform_perspective import TransformPerspective
 from camera_calibration.undistort_image import Undistort
 
 
+class LocatedLine:
+    """
+    Class to contain located line information
+    """
+    def __init__(self, fit_coefficients, line_x, line_y, height):
+        """
+        constructor
+        :param fit_coefficients: polynomial coefficients of the fit
+        :param line_x: x values for detected line pixels
+        :param line_y: y values for detected line pixels
+        """
+        self.fit_coefficients = fit_coefficients
+        self.line_x = line_x
+        self.line_y = line_y
+
+        self.fity = np.linspace(0, height - 1, height)
+        self.fitx = Locator.polynormial_eval(fit_coefficients, self.fity)
+
+
 class Locator:
     """
     The class to locate lane line on a thresholded and warped image using sliding window
@@ -34,6 +53,13 @@ class Locator:
     @staticmethod
     def polynormial_eval(polynormial_factors, y):
         return polynormial_factors[0] * (y ** 2) + polynormial_factors[1] * y + polynormial_factors[2]
+
+    @staticmethod
+    def pixels_on_fit(height, left_fit, right_fit):
+        ploty = np.linspace(0, height - 1, height)
+        left_fitx = Locator.polynormial_eval(left_fit, ploty)
+        right_fitx = Locator.polynormial_eval(right_fit, ploty)
+        return ploty, left_fitx, right_fitx
 
     @staticmethod
     def cv2_draw_line(img, x, y, line_width, color):
@@ -114,7 +140,8 @@ class Locator:
         # Fit a second order polynomial to each
         self.left_fit = np.polyfit(lefty, leftx, 2)
         self.right_fit = np.polyfit(righty, rightx, 2)
-        return self.left_fit, self.right_fit
+        return LocatedLine(self.left_fit, leftx, lefty, self.input_img.shape[0]), \
+               LocatedLine(self.right_fit, rightx, righty, self.input_img.shape[0])
 
     def visualize(self):
         """
@@ -130,9 +157,7 @@ class Locator:
             for right_window in self.right_windows:
                 cv2.rectangle(out_img, right_window[0], right_window[1], (0, 255, 0), 2)
 
-            ploty = np.linspace(0, self.input_img.shape[0] - 1, self.input_img.shape[0])
-            left_fitx = self.polynormial_eval(self.left_fit, ploty)
-            right_fitx = self.polynormial_eval(self.right_fit, ploty)
+            ploty, left_fitx, right_fitx = Locator.pixels_on_fit(self.input_img.shape[0], self.left_fit, self.right_fit)
 
             out_img[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
             out_img[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
@@ -166,7 +191,8 @@ class LocatorWithPrior(Locator):
         # Fit a second order polynomial to each
         self.left_fit = np.polyfit(lefty, leftx, 2)
         self.right_fit = np.polyfit(righty, rightx, 2)
-        return self.left_fit, self.right_fit
+        return LocatedLine(self.left_fit, leftx, lefty, self.input_img.shape[0]), \
+               LocatedLine(self.right_fit, rightx, righty, self.input_img.shape[0])
         
     def visualize(self):
         """
@@ -181,9 +207,7 @@ class LocatorWithPrior(Locator):
         out_img[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
 
         # Generate x and y values for plotting
-        ploty = np.linspace(0, self.input_img.shape[0] - 1, self.input_img.shape[0])
-        left_fitx = self.polynormial_eval(self.left_fit, ploty)
-        right_fitx = self.polynormial_eval(self.right_fit, ploty)
+        ploty, left_fitx, right_fitx = Locator.pixels_on_fit(self.input_img.shape[0], self.left_fit, self.right_fit)
 
         # Generate a polygon to illustrate the search window area
         # Draw the lane onto the warped blank image
@@ -215,14 +239,18 @@ def main():
     input_img = transformer.transform(input_img)
 
     locator = Locator(input_img)
-    left_fit, right_fit = locator.sliding_window()
+    left_located_line, right_located_line = locator.sliding_window()
+    left_fit = left_located_line.fit_coefficients
+    right_fit = right_located_line.fit_coefficients
     out_img = locator.visualize()
     plt.imshow(out_img)
     output_path = cfg.join_path(cfg.line_finder['output'], threshold_image_name + '_line1.jpg')
     plt.savefig(output_path)
 
     locatorWithPrior = LocatorWithPrior(input_img, left_fit, right_fit)
-    left_fit, right_fit = locatorWithPrior.sliding_window()
+    left_located_line, right_located_line=locatorWithPrior.sliding_window()
+    left_fit = left_located_line.fit_coefficients
+    right_fit = right_located_line.fit_coefficients
     out_img = locatorWithPrior.visualize()
     plt.imshow(out_img)
     output_path = cfg.join_path(cfg.line_finder['output'], threshold_image_name + '_line2.jpg')
@@ -233,9 +261,7 @@ def main():
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
-    ploty = np.linspace(0, input_img.shape[0] - 1, input_img.shape[0])
-    left_fitx = Locator.polynormial_eval(left_fit, ploty)
-    right_fitx = Locator.polynormial_eval(right_fit, ploty)
+    ploty, left_fitx, right_fitx = Locator.pixels_on_fit(input_img.shape[0], left_fit, right_fit)
 
     pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
     pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])

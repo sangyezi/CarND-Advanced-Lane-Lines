@@ -1,4 +1,5 @@
 .idea
 .DS_Store
 video_frames*
+videos
 __pycache__

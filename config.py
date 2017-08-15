@@ -33,7 +33,9 @@ line_finder = {
 }
 
 video_path = {
-    'videos': return_if_exist(join_path(base_dir, 'resources', 'videos')),
-    'frames': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'video_frames'))
+    'videos': return_if_exist(join_path(base_dir, 'resources', 'videos', 'input_videos')),
+    'frames': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'video_frames')),
+    'output_videos': create_if_not_exist(join_path(base_dir, 'resources', 'videos', 'output_videos')),
+
 }
 

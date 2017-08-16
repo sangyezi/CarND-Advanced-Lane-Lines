@@ -14,7 +14,7 @@ class Lane:
     """
     Lane on a image, composed of left lane line and right lane line
     """
-    def __init__(self, img):
+    def __init__(self):
         """
         initialize lane on a image without prior knowledge about the lane
         :param img: input image (in BGR color)
@@ -25,18 +25,19 @@ class Lane:
         self.undistorter = Undistort()
         self.transformer = TransformPerspective()
 
-        self.undist = self.undistorter.undistort_image(img)
-        thresholded, thresholded_masked = threshold_pipeline(self.undist, False)
-        self.warped = self.transformer.transform(thresholded)
+    def find_line(self, img):
+        if not self.left_lane.detected or not self.right_lane.detected:
+            self.undist = self.undistorter.undistort_image(img)
+            thresholded, thresholded_masked = threshold_pipeline(self.undist, False)
+            self.warped = self.transformer.transform(thresholded_masked)
 
-        locator = Locator(self.warped)
-        left_located_line, right_located_line = locator.sliding_window()
-        self.left_lane.add_fit(left_located_line)
-        self.right_lane.add_fit(right_located_line)
+            locator = Locator(self.warped)
+            left_located_line, right_located_line = locator.sliding_window()
+            self.left_lane.add_fit(left_located_line)
+            self.right_lane.add_fit(right_located_line)
 
-        self.locator_visualized = locator.visualize()
+            self.locator_visualized = locator.visualize()
 
-        # "update" based on located line on the current image
         self.update(img)
 
     def update(self, img):
@@ -47,7 +48,7 @@ class Lane:
         """
         self.undist = self.undistorter.undistort_image(img)
         thresholded, thresholded_masked = threshold_pipeline(self.undist, False)
-        self.warped = self.transformer.transform(thresholded)
+        self.warped = self.transformer.transform(thresholded_masked)
 
         locatorWithPrior = LocatorWithPrior(self.warped, self.left_lane.fit, self.right_lane.fit)
         left_located_line, right_located_line = locatorWithPrior.sliding_window()
@@ -187,7 +188,8 @@ def test():
     image_name = 'test6'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     image = cv2.imread(image_path)
-    lane = Lane(image)
+    lane = Lane()
+    lane.find_line(image)
     result = lane.visualize()
     result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
 
@@ -197,27 +199,31 @@ def test():
     # plt.savefig(output_path)
 
 
-def process_image(image):
-    """
-    process image (identify the lane line), return the processed image
-    :param image: input image
-    :return: the processed image
-    """
-    lane = Lane(image)
-    return lane.visualize()
-
 if __name__ == '__main__':
     # test()
 
+    lane = Lane()
+
+    def process_image(image):
+        """
+        process image (identify the lane line), return the processed image
+        :param image: input image
+        :return: the processed image
+        """
+        lane.find_line(image)
+        return lane.visualize()
+
     from moviepy.editor import VideoFileClip
 
-    video_name = 'project_video.mp4'
+    # video_name = 'project_video.mp4'
+    video_name = 'challenge_video.mp4'
+    # video_name = 'harder_challenge_video.mp4'
 
     input_path = cfg.join_path(cfg.video_path['videos'], video_name)
     output_path = cfg.join_path(cfg.video_path['output_videos'], video_name)
 
     ## To speed up the testing process, only process a subclip of the first 5 seconds
-    # clip1 = VideoFileClip(input_path).subclip(0, 5)
-    clip1 = VideoFileClip(input_path)
+    clip1 = VideoFileClip(input_path).subclip(0, 5)
+    # clip1 = VideoFileClip(input_path)
     white_clip = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
     white_clip.write_videofile(output_path, audio=False)

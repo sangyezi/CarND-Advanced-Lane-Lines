@@ -10,7 +10,7 @@ import config as cfg
 import matplotlib.pyplot as plt
 from line_finder.workflow import cv2_overlay
 
-
+# deprecated:
 # prototype of the workflow, actually replaced by workflow.py
 def pipeline_prototype():
     panel_scale = 0.33

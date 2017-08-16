@@ -56,7 +56,7 @@ class Undistort:
             plt.show()
 
 
-def main():
+def test_undistort():
     undistort = Undistort()
 
     image_name = 'calibration1'
@@ -75,4 +75,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_undistort()

@@ -228,7 +228,7 @@ class LocatorWithPrior(Locator):
         # plt.plot(right_fitx, ploty, color='yellow')
 
 
-def main():
+def test_locate_lane_lines():
     image_name = 'test6'
     threshold_image_name = image_name + '_threshold'
     input_path = cfg.join_path(cfg.line_finder['output'], threshold_image_name + '.jpg')
@@ -286,4 +286,4 @@ def main():
     plt.savefig(output_path)
 
 if __name__ == '__main__':
-    main()
+    test_locate_lane_lines()

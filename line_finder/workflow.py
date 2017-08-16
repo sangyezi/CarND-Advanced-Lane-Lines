@@ -28,8 +28,8 @@ class Lane:
     def find_line(self, img):
         if not self.left_lane.detected or not self.right_lane.detected:
             self.undist = self.undistorter.undistort_image(img)
-            thresholded, thresholded_masked = threshold_pipeline(self.undist, False)
-            self.warped = self.transformer.transform(thresholded_masked)
+            images = threshold_pipeline(self.undist)
+            self.warped = self.transformer.transform(images.get('thresholded_masked'))
 
             locator = Locator(self.warped)
             left_located_line, right_located_line = locator.sliding_window()
@@ -47,8 +47,8 @@ class Lane:
         :return: None
         """
         self.undist = self.undistorter.undistort_image(img)
-        thresholded, thresholded_masked = threshold_pipeline(self.undist, False)
-        self.warped = self.transformer.transform(thresholded_masked)
+        images = threshold_pipeline(self.undist)
+        self.warped = self.transformer.transform(images.get('thresholded_masked'))
 
         locatorWithPrior = LocatorWithPrior(self.warped, self.left_lane.fit, self.right_lane.fit)
         left_located_line, right_located_line = locatorWithPrior.sliding_window()

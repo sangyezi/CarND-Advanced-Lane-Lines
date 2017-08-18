@@ -10,17 +10,62 @@ class Channel:
     class to extract a single channel from a image (BGR channels)
     """
     @staticmethod
-    def gray(img):
+    def gray(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
         return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     @staticmethod
-    def red_channel(img):
+    def red_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
         return img[:, :, 2]
 
     @staticmethod
-    def s_channel(img):
+    def green_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
+        return img[:, :, 1]
+
+    @staticmethod
+    def blue_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
+        return img[:, :, 0]
+
+    @staticmethod
+    def h_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
+        return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)[:, :, 0]
+
+    @staticmethod
+    def l_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
+        return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)[:, :, 1]
+
+    @staticmethod
+    def s_channel(img, clahe=False):
+        if clahe:
+            img = Channel.clahe_bgr(img)
         return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)[:, :, 2]
-    #todo: add more channels
+
+    @staticmethod
+    def clahe_bgr(img):
+        """
+        Histogram Equalization
+        :param img: image with 3 channels (B, G, R)
+        :return: equalized image
+        """
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(2, 2))
+
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
 
 class Gradient:
     """
@@ -102,6 +147,34 @@ class Thresholding:
             binary[(img >= thresh[0]) & (img < thresh[1])] = 1
             return binary
 
+
+class Module:
+    @staticmethod
+    def module(channel_functor, gradient_functor, thresh_functor, thresh, img):
+        if gradient_functor:
+            functor = lambda img, thresh: thresh_functor(gradient_functor(channel_functor(img)), thresh)
+            processed = functor(img, thresh)
+            name = "%s_%s_%s" % (channel_functor.__name__, gradient_functor.__name__, thresh_functor.__name__)
+        else:
+            functor = lambda img, thresh_range: thresh_functor(channel_functor(img), thresh_range)
+            processed = functor(img, thresh)
+            name = "%s_%s" % (channel_functor.__name__, thresh_functor.__name__)
+        return (name, processed)
+
+    @staticmethod
+    def module_clahe(channel_functor, gradient_functor, thresh_functor, thresh, img):
+        if gradient_functor:
+            functor = lambda img, thresh: thresh_functor(gradient_functor(channel_functor(img, True)), thresh)
+            processed = functor(img, thresh)
+            name = "clache_%s_%s_%s" % (channel_functor.__name__, gradient_functor.__name__, thresh_functor.__name__)
+        else:
+            functor = lambda img, thresh: thresh_functor(channel_functor(img, True), thresh)
+            processed = functor(img, thresh)
+            name = "clache_%s_%s" % (channel_functor.__name__, thresh_functor.__name__)
+        return (name, processed)
+
+
+class Combination:
     @staticmethod
     def any(img, *images):
         """
@@ -141,6 +214,7 @@ class Thresholding:
             return np.dstack((np.zeros_like(images[0]), images[0], images[1]))
         if len(images) == 3:
             return np.dstack((images[0], images[1], images[2]))
+
 
 
 class RegionOfInterest:
@@ -232,37 +306,39 @@ def threshold_pipeline(img):
     :param img: image as input
     :return: ImageList: a list of images (as intermediate and ultimate processed result)
     """
-    gray_thresh = (130, 255)
-    s_thresh = (130, 255)
-    sobelx_thresh = (20, 100)
-    sobel_direction_thresh = (0.5, 1.2)
+    modules = [Module.module(Channel.gray, None, Thresholding.range, (130, 255), img),
+               Module.module(Channel.s_channel, None, Thresholding.range, (130, 255), img),
+               Module.module(Channel.gray, Gradient.sobel_x, Thresholding.range, (20, 100), img),
+               Module.module(Channel.gray, Gradient.sobel_direction, Thresholding.range, (0.5, 1.2), img)]
+    thresholded = Combination.any(
+        Combination.all(
+            modules[0][1],
+            modules[1][1]
+        ),
+        Combination.all(
+            modules[2][1],
+            modules[3][1]
+        )
+    )
 
-    gray_range = Thresholding.range(Channel.gray(img), gray_thresh)
-    s_range = Thresholding.range(Channel.s_channel(img), s_thresh)
-    gray_sobelx_range = Thresholding.range(Gradient.sobel_x(Channel.gray(img)), sobelx_thresh)
-    gray_sobel_direction_range = Thresholding.range(Gradient.sobel_direction(Channel.gray(img)), sobel_direction_thresh)
-
-    thresholded = Thresholding.any(Thresholding.all(gray_range, s_range), Thresholding.all(gray_sobelx_range, gray_sobel_direction_range))
-
-    stacked = Thresholding.color_stack(Thresholding.all(gray_range, s_range), gray_sobelx_range, gray_sobel_direction_range)
+    stacked = Combination.color_stack(Combination.all(modules[0][1], modules[1][1]),
+                                      modules[2][1], modules[3][1])
 
     apex_relative_pos = (0.5, 0.6)
     apex_relative_width = 0.05
     thresholded_masked = RegionOfInterest.roi(thresholded, RegionOfInterest.get_vertices(thresholded,
                                                                             apex_relative_pos=apex_relative_pos,
                                                                             apex_relative_width=apex_relative_width))
-    images = [('gray_range', gray_range),
-              ('s_range', s_range),
-              ('gray_sobelx_range', gray_sobelx_range),
-              ('gray_sobel_direction_range', gray_sobel_direction_range),
-              ('thresholded', thresholded),
-              ('stacked', stacked),
-              ('thresholded_masked', thresholded_masked)]
 
-    return ImageList(images)
+    modules.append(('thresholded', thresholded))
+    modules.append(('stacked', stacked))
+    modules.append(('thresholded_masked', thresholded_masked))
+    modules.append(('original', cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+    return ImageList(modules)
 
 
 def test_threshold_pipeline():
+    # image_name = 'challenge_video_frame37'
     image_name = 'test6'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = cv2.imread(image_path)

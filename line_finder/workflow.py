@@ -24,6 +24,7 @@ class Lane:
 
         self.undistorter = Undistort()
         self.transformer = TransformPerspective()
+        #todo: speed, distance between lane lines
 
     def find_line(self, img):
         if not self.left_lane.detected or not self.right_lane.detected:

@@ -231,6 +231,7 @@ class LocatorWithPrior(Locator):
 def test_locate_lane_lines():
     image_name = 'test6'
     threshold_image_name = image_name + '_threshold'
+
     input_path = cfg.join_path(cfg.line_finder['output'], threshold_image_name + '.jpg')
     input_img = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
 

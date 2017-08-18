@@ -19,7 +19,7 @@ def video_frame_generator(video_path):
         count += 1
 
 
-def video_extract(video_path, output_path, transform):
+def video_extract(video_path, output_path, video_name, transform):
     """
     extract frames from video, transform them, and write them as image files to output path
     :param video_path: video path
@@ -32,18 +32,18 @@ def video_extract(video_path, output_path, transform):
         if transform is not None and image is not None:
             image = transform(image)
         if image is not None:
-            cv2.imwrite("%s/frame%d.jpg" % (output_path, count), image)  # save frame as JPEG file
+            cv2.imwrite("%s/%s_frame%d.jpg" % (output_path, video_name, count), image)  # save frame as JPEG file
 
 
 def main():
-    video_name = 'project_video'
+    video_name = 'challenge_video'
 
     video_path = cfg.join_path(cfg.video_path['videos'], video_name + '.mp4')
     output_path = cfg.create_if_not_exist(cfg.join_path(cfg.video_path['frames'], video_name))
 
     undistort = Undistort().undistort_image
 
-    video_extract(video_path, output_path, undistort)
+    video_extract(video_path, output_path, video_name, undistort)
 
 if __name__ == '__main__':
     main()

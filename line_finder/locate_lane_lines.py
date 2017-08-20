@@ -55,6 +55,11 @@ class Locator:
         return polynormial_factors[0] * (y ** 2) + polynormial_factors[1] * y + polynormial_factors[2]
 
     @staticmethod
+    def curvature(polynormial_factors, y):
+        return pow(1 + pow(2 * polynormial_factors[0] * y + polynormial_factors[1], 2), 1.5) / abs(2 * polynormial_factors[0])
+
+
+    @staticmethod
     def pixels_on_fit(height, left_fit, right_fit):
         ploty = np.linspace(0, height - 1, height)
         left_fitx = Locator.polynormial_eval(left_fit, ploty)

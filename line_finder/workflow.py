@@ -1,7 +1,7 @@
 from camera_calibration.undistort_image import Undistort
 from line_finder.transform_perspective import TransformPerspective
 
-from line_finder.thresholding import threshold_pipeline
+from line_finder.thresholding import threshold_pipeline, challenge_threshold_pipeline
 from line_finder.locate_lane_lines import Locator, LocatorWithPrior
 
 import cv2
@@ -14,7 +14,7 @@ class Lane:
     """
     Lane on a image, composed of left lane line and right lane line
     """
-    def __init__(self):
+    def __init__(self, thresholder):
         """
         initialize lane on a image without prior knowledge about the lane
         :param img: input image (in BGR color)
@@ -24,13 +24,17 @@ class Lane:
 
         self.undistorter = Undistort()
         self.transformer = TransformPerspective()
+        self.thresholder = thresholder
+
+        self.frame = 0
         #todo: speed, distance between lane lines
 
     def find_line(self, img):
         if not self.left_lane.detected or not self.right_lane.detected:
             self.undist = self.undistorter.undistort_image(img)
-            images = threshold_pipeline(self.undist)
-            self.warped = self.transformer.transform(images.get('thresholded_masked'))
+            images = self.thresholder(self.undist)
+            self.thresholded = images.get('thresholded_masked')
+            self.warped = self.transformer.transform(self.thresholded)
 
             locator = Locator(self.warped)
             left_located_line, right_located_line = locator.sliding_window()
@@ -48,8 +52,9 @@ class Lane:
         :return: None
         """
         self.undist = self.undistorter.undistort_image(img)
-        images = threshold_pipeline(self.undist)
-        self.warped = self.transformer.transform(images.get('thresholded_masked'))
+        images = self.thresholder(self.undist)
+        self.thresholded = images.get('thresholded_masked')
+        self.warped = self.transformer.transform(self.thresholded)
 
         locatorWithPrior = LocatorWithPrior(self.warped, self.left_lane.fit, self.right_lane.fit)
         left_located_line, right_located_line = locatorWithPrior.sliding_window()
@@ -58,6 +63,7 @@ class Lane:
         # todo: consider return some value based on add_fit: if locatorWithPrior does not work well, use locator instead
 
         self.locator_with_prior_visualized = locatorWithPrior.visualize()
+        self.frame = self.frame + 1
 
     def visualize(self, panel_scale=0.3):
         """
@@ -66,7 +72,10 @@ class Lane:
         :param panel_scale: scale of the panel on the output image
         :return: output image
         """
-        panel_img = cv2.resize(self.locator_with_prior_visualized, (0, 0), fx=panel_scale, fy=panel_scale)
+        # panel_img = cv2.resize(self.locator_with_prior_visualized, (0, 0), fx=panel_scale, fy=panel_scale)
+        thresholded = np.dstack((self.thresholded, self.thresholded, self.thresholded)) *255
+
+        panel_img = cv2.resize(thresholded, (0, 0), fx=panel_scale, fy=panel_scale)
 
         # Create an image to draw the lines on
         warp_zero = np.zeros_like(self.warped).astype(np.uint8)
@@ -87,8 +96,9 @@ class Lane:
 
         result = cv2.addWeighted(self.undist, 1, newwarp, 0.3, 0)
 
-        result = cv2_overlay(result, panel_img, (5, 5))
-        return result
+        text = 'frame : %d' % self.frame
+        cv2.putText(result, text, (10, result.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        return cv2_overlay(result, panel_img, (5, 5))
 
 
 class Line:
@@ -159,8 +169,10 @@ class Line:
         self.update_average_fit()
         self.fit_on_average = np.polyfit(self.average_fitx, self.fity, 2)
 
-        # currently use most recent fit as fit
+        # currently use most recent fit as fit, todo: change
         self.fit = self.recent_fit_coefficients[-1]
+
+        self.radius_of_curvature = Locator.curvature(self.fit, 0)
 
         self.line_x = located_line.line_x
         self.line_y = located_line.line_y
@@ -189,7 +201,7 @@ def test():
     image_name = 'test6'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     image = cv2.imread(image_path)
-    lane = Lane()
+    lane = Lane(threshold_pipeline)
     lane.find_line(image)
     result = lane.visualize()
     result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
@@ -203,7 +215,7 @@ def test():
 if __name__ == '__main__':
     # test()
 
-    lane = Lane()
+    lane = Lane(challenge_threshold_pipeline)
 
     def process_image(image):
         """

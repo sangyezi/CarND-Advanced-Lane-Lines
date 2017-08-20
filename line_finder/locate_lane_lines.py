@@ -55,11 +55,6 @@ class Locator:
         return polynormial_factors[0] * (y ** 2) + polynormial_factors[1] * y + polynormial_factors[2]
 
     @staticmethod
-    def curvature(polynormial_factors, y):
-        return pow(1 + pow(2 * polynormial_factors[0] * y + polynormial_factors[1], 2), 1.5) / abs(2 * polynormial_factors[0])
-
-
-    @staticmethod
     def pixels_on_fit(height, left_fit, right_fit):
         ploty = np.linspace(0, height - 1, height)
         left_fitx = Locator.polynormial_eval(left_fit, ploty)
@@ -143,8 +138,14 @@ class Locator:
         righty = self.nonzeroy[self.right_lane_inds]
 
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        if leftx.shape[0] != 0:
+            self.left_fit = np.polyfit(lefty, leftx, 2)
+        else:
+            self.left_fit = np.array([0, 0, 0], dtype='float')
+        if rightx.shape[0] != 0:
+            self.right_fit = np.polyfit(righty, rightx, 2)
+        else:
+            self.right_fit =  np.array([0, 0, 0], dtype='float')
         return LocatedLine(self.left_fit, leftx, lefty, self.input_img.shape[0]), \
                LocatedLine(self.right_fit, rightx, righty, self.input_img.shape[0])
 
@@ -193,9 +194,16 @@ class LocatorWithPrior(Locator):
         lefty = self.nonzeroy[self.left_lane_inds]
         rightx = self.nonzerox[self.right_lane_inds]
         righty = self.nonzeroy[self.right_lane_inds]
+
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        if leftx.shape[0] != 0:
+            self.left_fit = np.polyfit(lefty, leftx, 2)
+        else:
+            self.left_fit = np.array([0, 0, 0], dtype='float')
+        if rightx.shape[0] != 0:
+            self.right_fit = np.polyfit(righty, rightx, 2)
+        else:
+            self.right_fit =  np.array([0, 0, 0], dtype='float')
         return LocatedLine(self.left_fit, leftx, lefty, self.input_img.shape[0]), \
                LocatedLine(self.right_fit, rightx, righty, self.input_img.shape[0])
         

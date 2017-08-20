@@ -403,6 +403,35 @@ def challenge_threshold_pipeline(img):
     return ImageList(modules)
 
 
+def challenge_threshold_pipeline_2(img):
+    """
+    thresholding pipeline, boilerplate code in the workflow
+    :param img: image as input
+    :return: ImageList: a list of images (as intermediate and ultimate processed result)
+    """
+    modules = [Module.module(img, Channel.l_channel, None, Thresholding.range, (175, 255), False),
+               Module.module(img, Channel.s_channel, None, Thresholding.range, (77, 255), False)]
+    thresholded = Combination.any(
+        modules[0][1],
+        modules[1][1]
+    )
+
+    stacked = Combination.color_stack(modules[0][1], modules[1][1])
+
+    apex_relative_pos = (0.5, 0.6)
+    apex_relative_width = 0.05
+    thresholded_masked = RegionOfInterest.roi(thresholded, RegionOfInterest.get_vertices(thresholded,
+                                                                            apex_relative_pos=apex_relative_pos,
+                                                                            apex_relative_width=apex_relative_width))
+
+    modules.append(('thresholded', thresholded))
+    modules.append(('stacked', stacked))
+    modules.append(('thresholded_masked', thresholded_masked))
+    modules.append(('original', cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+    return ImageList(modules)
+
+
+
 def test_threshold_pipeline():
     image_name = 'challenge_video_frame37'
     # image_name = 'test6'
@@ -412,7 +441,7 @@ def test_threshold_pipeline():
     undistort = Undistort()
     img = undistort.undistort_image(img)
 
-    images = challenge_threshold_pipeline(img)
+    images = challenge_threshold_pipeline_2(img)
     images.plot()
 
     combined_binary_path = cfg.join_path(cfg.line_finder['output'], image_name + '_threshold.jpg')

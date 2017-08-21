@@ -46,6 +46,7 @@ class Undistort:
         original = cv2.cvtColor(original, cv2.COLOR_BGR2RGB)
         undistorted = cv2.cvtColor(undistorted, cv2.COLOR_BGR2RGB)
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        f.tight_layout()
         ax1.imshow(original)
         ax1.set_title('Original Image', fontsize=30)
         ax2.imshow(undistorted)

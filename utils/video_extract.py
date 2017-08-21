@@ -36,7 +36,7 @@ def video_extract(video_path, output_path, video_name, transform):
 
 
 def main():
-    video_name = 'challenge_video'
+    video_name = 'project_video'
 
     video_path = cfg.join_path(cfg.video_path['videos'], video_name + '.mp4')
     output_path = cfg.create_if_not_exist(cfg.join_path(cfg.video_path['frames'], video_name))

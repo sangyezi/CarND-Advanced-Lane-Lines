@@ -5,7 +5,7 @@ import cv2
 
 class TransformPerspective:
     """
-    Provide functinality to transform perspective images taken by car camera
+    Provide functionality to transform perspective images taken by car camera
     """
     def __init__(self):
         perspective_matrix_path = cfg.line_finder['perspective_matrix_file']

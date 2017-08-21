@@ -54,6 +54,19 @@ The goals / steps of this project are the following:
 python files marked by `*` compose the pipeline for video processing, other python files are calibration or util files.
 Please refer to documentations in the codes for more details
 
+### How to run the code
+To run this pipeline, use the following command from the root directory
+```bash
+PYTHONPATH=. python line_finder/workflow.py
+```
+(to process the challenge video, uncomment Line #374 and #388 of `line_finder/workflow.py` )
+
+Most python files support
+```bash
+PYTHONPATH=. python folder/filename.py
+```
+which either run their `main()` method if the file is supposed to be run once to get calibration result, or `test_XXX` method as a unit test, if the file serve as part of the pipeline
+
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
 ##### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  

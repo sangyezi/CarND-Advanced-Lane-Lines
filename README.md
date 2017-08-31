@@ -65,7 +65,7 @@ Most python files support
 ```bash
 PYTHONPATH=. python folder/filename.py
 ```
-which either run their `main()` method if the file is supposed to be run once to get calibration result, or `test_XXX` method as a unit test, if the file serve as part of the pipeline
+which either runs their `main()` method if the file is supposed to be run once to get calibration result, or `test_XXX` method as a unit test, if the file serves as part of the pipeline
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 

@@ -32,6 +32,19 @@ line_finder = {
     'perspective_matrix_file': join_path(base_dir, 'line_finder', 'warp_matrix.p')
 }
 
+vehicle_detection = {
+    'vehicles': return_if_exist(join_path(base_dir, 'resources', 'images', 'vehicles')),
+    'non-vehicles': return_if_exist(join_path(base_dir, 'resources', 'images', 'non-vehicles')),
+    'color-space': 'YUV',  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+    'orient': 12,
+    'pix_per_cell': 8,
+    'cell_per_block': 2,
+    'hog_channel': 'ALL',  # Can be 0, 1, 2, or "ALL",
+    'spatial_size': None,
+    'hist_bins': None,
+    'svc_file': "svc_pickle.p"
+}
+
 video_path = {
     'videos': return_if_exist(join_path(base_dir, 'resources', 'videos', 'input_videos')),
     'frames': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'video_frames')),

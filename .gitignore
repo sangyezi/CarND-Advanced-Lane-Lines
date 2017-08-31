@@ -2,3 +2,4 @@
 .DS_Store
 video_frames*
 __pycache__
+svc_pickle.p

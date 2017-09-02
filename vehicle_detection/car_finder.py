@@ -5,11 +5,13 @@ import pickle
 import cv2
 from vehicle_detection.image_features import convert_color, get_hog_features, bin_spatial, color_hist, normalize_img
 import config as cfg
+from scipy.ndimage.measurements import label
 
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
 def find_cars(img, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins):
     rectangles = []
+    windows = []
 
     img = normalize_img(img)
 
@@ -25,7 +27,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, ori
     nyblocks = (ctrans_tosearch.shape[0] // pix_per_cell) - cell_per_block + 1
     # nfeat_per_block = orient * cell_per_block ** 2  # number of features per block
 
-    # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
+    # 64 was the original sampling rate, with 8 cells and 8 pix per cell
     window = 64
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
     cells_per_step = 2  # Instead of overlap, define how many cells to step
@@ -82,43 +84,131 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, ori
 
             test_prediction = svc.predict(test_features)
 
+            xbox_left = np.int(xleft * scale)
+            ytop_draw = np.int(ytop * scale)
+            win_draw = np.int(window * scale)
+
+            windows.append(((xbox_left, ytop_draw + ystart), (xbox_left+win_draw, ytop_draw + win_draw+ystart)))
             if test_prediction == 1:
-                xbox_left = np.int(xleft * scale)
-                ytop_draw = np.int(ytop * scale)
-                win_draw = np.int(window * scale)
                 rectangles.append(((xbox_left, ytop_draw + ystart), (xbox_left+win_draw, ytop_draw + win_draw+ystart)))
 
-    return rectangles
-
-# from trained model
-dist_pickle = pickle.load(open(cfg.vehicle_detection['svc_file'], "rb"))
-svc = dist_pickle["svc"]
-X_scaler = dist_pickle["scaler"]
-
-# config values
-cspace = cfg.vehicle_detection['color-space']
-orient = cfg.vehicle_detection['orient']
-pix_per_cell = cfg.vehicle_detection['pix_per_cell']
-cell_per_block = cfg.vehicle_detection['cell_per_block']
-hog_channel = cfg.vehicle_detection['hog_channel']
-spatial_size = cfg.vehicle_detection["spatial_size"]
-hist_bins = cfg.vehicle_detection["hist_bins"]
+    return windows, rectangles
 
 
-image_name = 'test6'
-image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
-img = mpimg.imread(image_path)
-img_scaled = img.astype(np.float32) / 255
+def add_heat(heatmap, bbox_list):
+    # Iterate through list of bboxes
+    for box in bbox_list:
+        # Add += 1 for all pixels inside each bbox
+        # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
-# specific to car image problem
-ystart = 400
-ystop = 656
-scale = 1.5
+    # Return updated heatmap
+    return heatmap
 
-rectangles = find_cars(img_scaled, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, orient, pix_per_cell,
-                       cell_per_block, spatial_size, hist_bins)
 
-for rectangle in rectangles:
-    cv2.rectangle(img, rectangle[0], rectangle[1], (0, 0, 255), 6)
-plt.imshow(img)
-plt.show()
+def apply_threshold(heatmap, threshold):
+    # Zero out pixels below the threshold
+    heatmap[heatmap <= threshold] = 0
+    # Return thresholded map
+    return heatmap
+
+
+def draw_labeled_bboxes(img, labels):
+    # Iterate through all detected cars
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        # Draw the box on the image
+        cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
+    # Return the image
+    return img
+
+
+def car_multiple_detections(img, draw=False):
+    # from trained model
+    dist_pickle = pickle.load(open(cfg.vehicle_detection['svc_file'], "rb"))
+    svc = dist_pickle["svc"]
+    X_scaler = dist_pickle["scaler"]
+
+    # config values
+    cspace = cfg.vehicle_detection['color-space']
+    orient = cfg.vehicle_detection['orient']
+    pix_per_cell = cfg.vehicle_detection['pix_per_cell']
+    cell_per_block = cfg.vehicle_detection['cell_per_block']
+    hog_channel = cfg.vehicle_detection['hog_channel']
+    spatial_size = cfg.vehicle_detection["spatial_size"]
+    hist_bins = cfg.vehicle_detection["hist_bins"]
+
+    yranges_scales = [[400, 656, 1.5], [400, 720, 2],  [400, 720, 2.5]]
+
+    all_rectangles = []
+    # all_windows = []
+
+    img_rectangles = np.copy(img)
+    img_windows = np.copy(img)
+
+    for ystart, ystop, scale, in yranges_scales:
+        windows, rectangles = find_cars(img, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, orient, pix_per_cell,
+                           cell_per_block, spatial_size, hist_bins)
+        all_rectangles.extend(rectangles)
+
+        color = (np.random.randint(0, 8) * 32, np.random.randint(0, 8) * 32, np.random.randint(0, 8) * 32)
+        for window in [windows[0], windows[1], windows[-2], windows[-1]]:
+            cv2.rectangle(img_windows, window[0], window[1], color, 6)
+        for rectangle in rectangles:
+            cv2.rectangle(img_rectangles, rectangle[0], rectangle[1], color, 6)
+
+    heat = np.zeros_like(img[:, :, 0]).astype(np.float)
+
+    # Add heat to each box in box list
+    heat = add_heat(heat, all_rectangles)
+
+    # Apply threshold to help remove false positives
+    heat = apply_threshold(heat, 1)
+
+    # Visualize the heatmap when displaying
+    heatmap = np.clip(heat, 0, 255)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+
+    draw_img = draw_labeled_bboxes(np.copy(img), labels)
+
+    if draw:
+        print(labels[1], 'cars found')
+
+        fig = plt.figure(figsize=(20, 10))
+        plt.subplot(321)
+        plt.imshow(img)
+        plt.subplot(322)
+        plt.imshow(img_windows)
+        plt.subplot(323)
+        plt.imshow(img_rectangles)
+        plt.title('Rectangles')
+        plt.subplot(324)
+        plt.imshow(labels[0], cmap='gray')
+        plt.title('Labels')
+        plt.subplot(325)
+        plt.imshow(heatmap, cmap='hot')
+        plt.title('Heat Map')
+        plt.subplot(326)
+        plt.imshow(draw_img)
+        plt.title('Car Positions')
+        fig.tight_layout()
+        plt.show()
+    return draw_img
+
+
+def test():
+    image_name = 'test5'
+    image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
+    img = mpimg.imread(image_path)
+    car_multiple_detections(img, True)
+
+
+test()

@@ -101,13 +101,13 @@ print('Using:', cfg.vehicle_detection['orient'], 'orientations', cfg.vehicle_det
 print('Feature vector length:', len(X_train[0]))
 
 t = time.time()
+
 # Use a linear SVC
-# svc = svm.LinearSVC()
-# Check the training time for the SVC
-# svc.fit(X_train, y_train)
+svc = svm.LinearSVC()
 
 # parameters = {'kernel': ('linear', 'rbf'), 'C': [0.1, 1, 10]}
-svc = svm.SVC(kernel='rbf', C=10)
+# svc = svm.SVC(kernel='rbf', C=10)
+# svc = svm.SVC()
 # clf = GridSearchCV(svc, parameters)
 
 # clf.fit(X_train, y_train)

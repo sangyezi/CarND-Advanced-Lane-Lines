@@ -12,8 +12,15 @@ from vehicle_detection.image_features import get_hog_features, convert_color, bi
 
 # Define a function to extract features from a list of images
 # Have this function call bin_spatial() and color_hist()
-def extract_features(imgs, cspace='RGB', orient=9, pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                     spatial_size=None, hist_bins=None):
+def extract_features(imgs):
+    cspace = cfg.vehicle_detection['color-space']
+    orient = cfg.vehicle_detection['orient']
+    pix_per_cell = cfg.vehicle_detection['pix_per_cell']
+    cell_per_block = cfg.vehicle_detection['cell_per_block']
+    hog_channel = cfg.vehicle_detection['hog_channel']
+    spatial_size = cfg.vehicle_detection['spatial_size']
+    hist_bins = cfg.vehicle_detection['hist_bins']
+
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -49,52 +56,59 @@ def extract_features(imgs, cspace='RGB', orient=9, pix_per_cell=8, cell_per_bloc
     return features
 
 
+test_size = 0.2
+
 vehicle_path = cfg.vehicle_detection['vehicles']
-cars = glob.glob(cfg.join_path(vehicle_path, '**/*.png'))
+
+cars_GTI_folders = ['GTI_Far', 'GTI_Left', 'GTI_MiddleClose', 'GTI_Right']
+
+cars_GTI_trains = []
+cars_GTI_tests = []
+for cars_GTI_folder in cars_GTI_folders:
+    cars_GTI_paths = glob.glob(cfg.join_path(vehicle_path, cars_GTI_folder + '/*.png'))
+    split = int(len(cars_GTI_paths) * test_size)
+    cars_GTI_tests.extend(cars_GTI_paths[0:split])
+    cars_GTI_trains.extend(cars_GTI_paths[split:])
+
+cars_KITTI = glob.glob(cfg.join_path(vehicle_path, 'KITTI_extracted/*.png'))
 non_vehicle_path = cfg.vehicle_detection['non-vehicles']
 notcars = glob.glob(cfg.join_path(non_vehicle_path, '**/*.png'))
 
-
-# Reduce the sample size because HOG features are slow to compute
-# The quiz evaluator times out after 13s of CPU time
-# sample_size = 500
-# cars = cars[0: sample_size]
-# notcars = notcars[0: sample_size]
-
 t = time.time()
-car_features = extract_features(cars, cspace=cfg.vehicle_detection['color-space'],
-                                orient=cfg.vehicle_detection['orient'],
-                                pix_per_cell=cfg.vehicle_detection['pix_per_cell'],
-                                cell_per_block=cfg.vehicle_detection['cell_per_block'],
-                                hog_channel=cfg.vehicle_detection['hog_channel'],
-                                spatial_size=cfg.vehicle_detection['spatial_size'],
-                                hist_bins=cfg.vehicle_detection['hist_bins'])
+cars_GTI_train_features = extract_features(cars_GTI_trains)
+cars_GTI_test_features = extract_features(cars_GTI_tests)
 
-notcar_features = extract_features(notcars, cspace=cfg.vehicle_detection['color-space'],
-                                   orient=cfg.vehicle_detection['orient'],
-                                   pix_per_cell=cfg.vehicle_detection['pix_per_cell'],
-                                   cell_per_block=cfg.vehicle_detection['cell_per_block'],
-                                   hog_channel=cfg.vehicle_detection['hog_channel'],
-                                   spatial_size=cfg.vehicle_detection['spatial_size'],
-                                   hist_bins=cfg.vehicle_detection['hist_bins'])
+car_KITTI_features = extract_features(cars_KITTI)
+notcar_features = extract_features(notcars)
 
 t2 = time.time()
 print(round(t2-t, 2), 'Seconds to extract HOG features...')
 # Create an array stack of feature vectors
-X = np.vstack((car_features, notcar_features)).astype(np.float64)
+X = np.vstack((cars_GTI_train_features, cars_GTI_test_features, car_KITTI_features, notcar_features)).astype(np.float64)
 # Fit a per-column scaler
 X_scaler = StandardScaler().fit(X)
 # Apply the scaler to X
 scaled_X = X_scaler.transform(X)
 
 # Define the labels vector
-y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+y = np.hstack((np.ones(len(cars_GTI_train_features) + len(cars_GTI_test_features) + len(car_KITTI_features)),
+               np.zeros(len(notcar_features))))
 
+X_train_GTI = scaled_X[0: len(cars_GTI_train_features)]
+y_train_GTI = y[0: len(cars_GTI_train_features)]
+X_test_GTI = scaled_X[len(cars_GTI_train_features): len(cars_GTI_train_features) + len(cars_GTI_test_features)]
+y_test_GTI = y[len(cars_GTI_train_features): len(cars_GTI_train_features) + len(cars_GTI_test_features)]
 
 # Split up data into randomized training and test sets
 rand_state = np.random.randint(0, 100)
 X_train, X_test, y_train, y_test = train_test_split(
-    scaled_X, y, test_size=0.2, random_state=rand_state)
+    scaled_X[len(cars_GTI_train_features) + len(cars_GTI_test_features):],
+    y[len(cars_GTI_train_features) + len(cars_GTI_test_features):], test_size=0.2, random_state=rand_state)
+
+X_train = np.vstack((X_train_GTI, X_train))
+y_train = np.hstack((y_train_GTI, y_train))
+X_test = np.vstack((X_test_GTI, X_test))
+y_test = np.hstack((y_test_GTI, y_test))
 
 print('Using:', cfg.vehicle_detection['orient'], 'orientations', cfg.vehicle_detection['pix_per_cell'],
       'pixels per cell and', cfg.vehicle_detection['cell_per_block'], 'cells per block')

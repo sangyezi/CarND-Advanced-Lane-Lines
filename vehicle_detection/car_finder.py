@@ -209,7 +209,7 @@ def car_multiple_detections(img, draw=False, save_path=None):
 
 
 def test():
-    image_name = 'test4'
+    image_name = 'test5'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = mpimg.imread(image_path)
 
@@ -255,5 +255,5 @@ def project_video_process():
 
 
 if __name__ == '__main__':
-    # test()
-    project_video_process()
+    test()
+    # project_video_process()

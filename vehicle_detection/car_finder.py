@@ -31,8 +31,8 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, cspace, hog_channel, ori
     window = 64
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
     cells_per_step = 2  # Instead of overlap, define how many cells to step
-    nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
-    nysteps = (nyblocks - nblocks_per_window) // cells_per_step
+    nxsteps = (nxblocks - nblocks_per_window) // cells_per_step + 1
+    nysteps = (nyblocks - nblocks_per_window) // cells_per_step + 1
 
     # Compute individual channel HOG features for the entire image
     if hog_channel == 'ALL':
@@ -124,12 +124,12 @@ def draw_labeled_bboxes(img, labels):
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
+        cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 4)
     # Return the image
     return img
 
 
-def car_multiple_detections(img, draw=False):
+def car_multiple_detections(img, draw=False, save_path=None):
     # from trained model
     dist_pickle = pickle.load(open(cfg.vehicle_detection['svc_file'], "rb"))
     svc = dist_pickle["svc"]
@@ -144,10 +144,9 @@ def car_multiple_detections(img, draw=False):
     spatial_size = cfg.vehicle_detection["spatial_size"]
     hist_bins = cfg.vehicle_detection["hist_bins"]
 
-    yranges_scales = [[400, 656, 1.5], [400, 720, 2],  [400, 720, 2.5]]
+    yranges_scales = [[400, 500, 1.2], [400, 656, 1.5], [400, 720, 2],  [400, 720, 2.5]]
 
     all_rectangles = []
-    # all_windows = []
 
     img_rectangles = np.copy(img)
     img_windows = np.copy(img)
@@ -182,33 +181,79 @@ def car_multiple_detections(img, draw=False):
     if draw:
         print(labels[1], 'cars found')
 
-        fig = plt.figure(figsize=(20, 10))
+        fig = plt.figure(figsize=(15, 10))
         plt.subplot(321)
         plt.imshow(img)
+        plt.title('Original image', fontsize=18)
         plt.subplot(322)
         plt.imshow(img_windows)
+        plt.title('Windows (only first two and last two of a scale showed)', fontsize=18)
         plt.subplot(323)
         plt.imshow(img_rectangles)
-        plt.title('Rectangles')
+        plt.title('Windows with car', fontsize=18)
         plt.subplot(324)
-        plt.imshow(labels[0], cmap='gray')
-        plt.title('Labels')
-        plt.subplot(325)
         plt.imshow(heatmap, cmap='hot')
-        plt.title('Heat Map')
+        plt.title('Heat Map', fontsize=18)
+        plt.subplot(325)
+        plt.imshow(labels[0], cmap='gray')
+        plt.title('Labels', fontsize=18)
         plt.subplot(326)
         plt.imshow(draw_img)
-        plt.title('Car Positions')
+        plt.title('Car Positions', fontsize=18)
         fig.tight_layout()
-        plt.show()
+        if save_path:
+            plt.savefig(save_path)
+        else:
+            plt.show()
     return draw_img
 
 
 def test():
-    image_name = 'test5'
+    image_name = 'test4'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = mpimg.imread(image_path)
-    car_multiple_detections(img, True)
+
+    # frame_name = 'project_video_frame500'
+    # frame_path = cfg.join_path(cfg.video_path['frames'], 'project_video', frame_name + '.jpg')
+    # img = mpimg.imread(frame_path)
+    save_path = cfg.join_path(cfg.vehicle_detection['output'], image_name + '_car_finder.jpg')
+    car_multiple_detections(img, True, save_path)
 
 
-test()
+def project_video_process():
+    frame = 0
+
+    def process_image(image):
+        """
+        process image (identify the lane line), return the processed image
+        :param image: input image
+        :return: the processed image
+        """
+        nonlocal frame
+        frame += 1
+        text = 'frame: %d' % frame
+        detected_img = car_multiple_detections(image, False)
+        cv2.putText(detected_img, text, (10, detected_img.shape[0] - 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        return detected_img
+
+    from moviepy.editor import VideoFileClip
+
+    video_name = 'project_video.mp4'
+    # video_name = 'challenge_video.mp4'
+    # video_name = 'harder_challenge_video.mp4'
+
+    name, ext = video_name.split('.')
+    input_path = cfg.join_path(cfg.video_path['videos'], video_name)
+    output_path = cfg.join_path(cfg.video_path['output_videos'], name + '_vehicle_detected.' + ext)
+
+    # To speed up the testing process, only process a subclip of the first 5 seconds
+    # clip1 = VideoFileClip(input_path).subclip(20, 22)
+    clip1 = VideoFileClip(input_path)
+    white_clip = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
+    white_clip.write_videofile(output_path, audio=False)
+
+
+if __name__ == '__main__':
+    # test()
+    project_video_process()

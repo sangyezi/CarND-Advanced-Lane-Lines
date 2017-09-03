@@ -62,3 +62,47 @@ def color_hist(img, nbins=32):  # bins_range=(0, 256)
     # Return the individual histograms, bin_centers and feature vector
     return hist_features
 
+
+def main():
+    import config as cfg
+    import glob
+    import matplotlib.image as mpimg
+    import matplotlib.pyplot as plt
+
+    vehicle_path = cfg.vehicle_detection['vehicles']
+    cars = glob.glob(cfg.join_path(vehicle_path, '**/*.png'))
+    non_vehicle_path = cfg.vehicle_detection['non-vehicles']
+    notcars = glob.glob(cfg.join_path(non_vehicle_path, '**/*.png'))
+
+    car_image = mpimg.imread(cars[np.random.randint(0, len(cars))])
+    notcar_image = mpimg.imread(notcars[np.random.randint(0, len(notcars))])
+
+    orient = cfg.vehicle_detection['orient']
+    pix_per_cell = cfg.vehicle_detection['pix_per_cell']
+    cell_per_block = cfg.vehicle_detection['cell_per_block']
+
+    features, car_hog = get_hog_features(car_image[:, :, 2], orient, pix_per_cell, cell_per_block,
+                                         vis=True, feature_vec=True)
+    features, notcar_hog = get_hog_features(notcar_image[:, :, 2], orient, pix_per_cell, cell_per_block,
+                                            vis=True, feature_vec=True)
+
+    fig = plt.figure(figsize=(12, 10))
+    plt.subplot(221)
+    plt.imshow(car_image)
+    plt.title('Car', fontsize=18)
+    plt.subplot(222)
+    plt.imshow(notcar_image)
+    plt.title('Not Car', fontsize=18)
+    plt.subplot(223)
+    plt.imshow(car_hog, cmap='gray')
+    plt.title('Car HOG', fontsize=18)
+    plt.subplot(224)
+    plt.imshow(notcar_hog, cmap='gray')
+    plt.title('Not Car HOG', fontsize=18)
+
+    fig.tight_layout()
+    # plt.show()
+    plt.savefig(cfg.join_path(cfg.vehicle_detection['output'], 'hog.jpg'))
+
+if __name__ == '__main__':
+    main()

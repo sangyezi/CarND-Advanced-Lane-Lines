@@ -35,7 +35,8 @@ line_finder = {
 vehicle_detection = {
     'vehicles': return_if_exist(join_path(base_dir, 'resources', 'images', 'vehicles')),
     'non-vehicles': return_if_exist(join_path(base_dir, 'resources', 'images', 'non-vehicles')),
-    'color-space': 'YUV',  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+    'output': create_if_not_exist(join_path(base_dir, 'resources', 'images', 'output_images')),
+    'color-space': 'YCrCb',  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
     'orient': 12,
     'pix_per_cell': 8,
     'cell_per_block': 2,

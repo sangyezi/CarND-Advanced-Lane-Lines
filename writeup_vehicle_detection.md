@@ -1,4 +1,4 @@
-##README
+## README
 
 ---
 
@@ -37,20 +37,20 @@ The goals / steps of this project are the following:
 [video1]: ./resources/videos/output_videos/project_video_vehicle_detected.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
-###Writeup / README
+### Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
 
 You're reading it!
 
-###Histogram of Oriented Gradients (HOG)
+### Histogram of Oriented Gradients (HOG)
 
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+#### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in lines 72 through 86 of the file called `vehicle_detection/image_features.py`.  
 
 I started by reading in all the `vehicle` and `non-vehicle` images. 
 
@@ -60,9 +60,9 @@ Here is an example using the `YCrCb` color space and HOG parameters of `orientat
 
 ![HOG features of car and not car][image1]
 
-####2. Explain how you settled on your final choice of HOG parameters.
+#### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters to find the ones with the good test accuracy and the low training time. Here are 
+I tried various combinations of parameters to find the ones with the good test accuracy and the low training time. The following tables show how major parameters were selected 
 
 ##### optimize pix_per_cell
 |pix_per_cell|cell_per_block|time to extract HOG features (seconds)| features|time to train linear SVC| accuracy|time to predit 10 labels (seconds)|
@@ -75,7 +75,7 @@ I tried various combinations of parameters to find the ones with the good test a
 #### optimize color-space
 |color-space|time to extract HOG features (seconds)|time to train linear SVC| accuracy|time to predit 10 labels (seconds)|
 |:---:|:---:|:---:|:---:|:---:|
-|YCrCb|55.92|3.29|98.22%|8.1e-4|
+|YCrCb|55.92|3.29|98.25%|8.1e-4|
 |LUV|59.06|20.16|97.46%|8.4e-4|
 |YUV|56.6|2.8|98.34%|1.13e-3|
 |HSV|56.74|4.36|98.14%|7.9e-4|
@@ -95,13 +95,13 @@ I tried various combinations of parameters to find the ones with the good test a
 The selected parameters can be seen in Line 39-43 of `config.py`. The parameters are configured at a central location `config.py`, so we can makes sure the same parameters are used for training, testing and sliding window search for cars in video processing.
 
 
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+#### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM with C = 1.0 (Line 106 of `vehicle_detection/svm_car_classify.py`). I tried `GridSearchCV` to optimize the kernel and C of the SVM, and find the best combination is `kernel='rbf', C=10`. However, the difference between the rbf kernel and linear kernel is not big (98.68% vs 98.9%), rbf kernel is much slower in training (2.8 vs 258 seconds) and testing (8.1e-4 vs 0.17897 seconds), and might have overfitting problem, and not shows better performance in video processing, so I decide to just use linear SVM instead. For linear SVM, I tested `C=0.1` and `C=10`, both results in a lower accuracy (98.51% and 98.39%) than using `C=1.0`. 
+I trained a linear SVM with C = 1.0 (Line 106 of `vehicle_detection/svm_car_classify.py`). I tried `GridSearchCV` to optimize the kernel and C of the SVM, and find the best combination is `kernel='rbf', C=10`. However, the difference between the rbf kernel and linear kernel is not big (98.25% vs 98.55%), rbf kernel is much slower in training (2.8 vs 258 seconds) and testing (8.1e-4 vs 0.17897 seconds), and might have overfitting problem, and not shows better performance in video processing, so I decide to just use linear SVM instead. For linear SVM, I tested `C=0.1` and `C=10`, both results in slightly lower lower accuracy than using `C=1.0`, thus I just used the default `C=1.0`.
 
-###Sliding Window Search
+### Sliding Window Search
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
 I implemented a sliding window search in the file `vehicle_detection/car_finder.py`. Four scales were used, as seen in `car_multiple_detections()` function of the file, as well as the table below. The right panel on the first row of the figure below plots the first two and last two windows of each scale, so we can visualize the start, end, size and overlap of each scale. Please notes the windows from a same scale were plotted used the same random color (also note the windows detected with car plotted on the left panel of the second role are plotting with the same corresponding colors as in the right panel of the first row).
 I always use 75% overlap, so the windows form nice coverage, but not super tight. For each scale, ystart is always 400, which is slightly higher than the horizon; different values were chosen for yend: the larger the scale, the larger the yend.
@@ -134,12 +134,12 @@ I already described above how I optimize the performance of the SVM classifier.
 
 ### Video Implementation
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
 Here's a [link to my video result](./resources/videos/output_videos/project_video_vehicle_detected.mp4)
 
 
 
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
+#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
 I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
 

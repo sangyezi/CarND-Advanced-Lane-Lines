@@ -4,6 +4,21 @@
 
 **Vehicle Detection Project**
 
+## Structure of the repository
+```angular2html
+|-vehicle_detection
+|---car_finder.py                     code for find cars in a video frame, and for processing video stream
+|---svm_car_classify.py               code for training svm classifier to differentiate car images vs non car images
+|---image_features.py                 code to construct features for the svm classifier
+|-resources                           image and video resources
+|---images                            image resources
+|-----output_images                   output images
+|-----test_images                     input images
+|---videos                            videos resources
+|-----input_videos                    input videos
+|-----output_videos                   output videos
+```
+
 The goals / steps of this project are the following:
 
 * Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
@@ -15,13 +30,11 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 [image1]: ./resources/images/output_images/hog.jpg
-[image2]: ./resources/images/output_images/car_finder.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[image2]: ./resources/images/output_images/test6_car_finder.jpg
+[image3]: ./resources/images/output_images/test2_car_finder.jpg
+[image4]: ./resources/images/output_images/test3_car_finder.jpg
+[image5]: ./resources/images/output_images/test5_car_finder.jpg
+[video1]: ./resources/videos/output_videos/project_video_vehicle_detected.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -49,11 +62,42 @@ Here is an example using the `YCrCb` color space and HOG parameters of `orientat
 
 ####2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of HOG and SVM parameters and tuned the parameters to achieve good performance, training time, test time with SVM classifier as well as the best performance when processing the project video. The selected parameters can be seen in Line 39-43 of `config.py`. The `config.py` file makes sure the same parameters are used for training, testing and sliding window search for cars in video processing.
+I tried various combinations of parameters to find the ones with the good test accuracy and the low training time. Here are 
+
+##### optimize pix_per_cell
+|pix_per_cell|cell_per_block|time to extract HOG features (seconds)| features|time to train linear SVC| accuracy|time to predit 10 labels (seconds)|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|16|4|36.7|576|1.29|96.22%|1.12e-3|
+|8|2|55.92|7056|3.29|98.25%|8.1e-4|
+|4|1|115.46|9216|35.29|97.68%|8.4e-4|
+`pixel_per_cell = 8` and `cell_per_block = 2` are used
+
+#### optimize color-space
+|color-space|time to extract HOG features (seconds)|time to train linear SVC| accuracy|time to predit 10 labels (seconds)|
+|:---:|:---:|:---:|:---:|:---:|
+|YCrCb|55.92|3.29|98.22%|8.1e-4|
+|LUV|59.06|20.16|97.46%|8.4e-4|
+|YUV|56.6|2.8|98.34%|1.13e-3|
+|HSV|56.74|4.36|98.14%|7.9e-4|
+|HLS|56.73|5.72|98.31%|1.1e-3|
+|RGB|55.58|21.36|969%|7.9e-4|
+`color-space = YCrCb` is used
+
+#### optimize orient
+|orient|time to extract HOG features (seconds)|time to train linear SVC| accuracy|time to predit 10 labels (seconds)|
+|:---:|:---:|:---:|:---:|:---:|
+|16|61.62|3.18|98.17%|8.5e-4|
+|12|55.92|3.29|98.25%|8.1e-4|
+|8|53.48|10.36|97.94%|7.8e-4|
+
+`orient = 12` is used 
+
+The selected parameters can be seen in Line 39-43 of `config.py`. The parameters are configured at a central location `config.py`, so we can makes sure the same parameters are used for training, testing and sliding window search for cars in video processing.
+
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM with C = 1.0 (Line 106 of `vehicle_detection/svm_car_classify.py`). I tried `GridSearchCV` to optimize the kernel and C of the SVM, and find the best combination is `kernel='rbf', C=10`. However, the difference between the rbf kernel and linear kernel is not big, rbf kernel is much slower in training and testing, tends to have overfitting problem, and not shows better performance in video processing, so I decide to use linear SVM instead. 
+I trained a linear SVM with C = 1.0 (Line 106 of `vehicle_detection/svm_car_classify.py`). I tried `GridSearchCV` to optimize the kernel and C of the SVM, and find the best combination is `kernel='rbf', C=10`. However, the difference between the rbf kernel and linear kernel is not big (98.68% vs 98.9%), rbf kernel is much slower in training (2.8 vs 258 seconds) and testing (8.1e-4 vs 0.17897 seconds), and might have overfitting problem, and not shows better performance in video processing, so I decide to just use linear SVM instead. For linear SVM, I tested `C=0.1` and `C=10`, both results in a lower accuracy (98.51% and 98.39%) than using `C=1.0`. 
 
 ###Sliding Window Search
 
@@ -78,7 +122,13 @@ I always use 75% overlap, so the windows form nice coverage, but not super tight
 Ultimately I searched on four scales using YCrCb 3-channel HOG features, which provided a nice result.  Here are some 
 more example images:
 
+![alt text][image3]
 
+![alt text][image4]
+
+![alt text][image5]
+
+I already described above how I optimize the performance of the SVM classifier.
 
 ---
 
@@ -95,16 +145,8 @@ I recorded the positions of positive detections in each frame of the video.  Fro
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
-### Here are six frames and their corresponding heatmaps:
 
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
+Taking the figures above as example, the heatmaps are shown as the right panel of second row of each figure, the output of `scipy.ndimage.measurements.label()` on the integrated heatmap and the resulting bounding boxes are shown as the last row of each figure.
 
 
 ---
@@ -112,6 +154,7 @@ Here's an example result showing the heatmap from a series of frames of video, t
 ###Discussion
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+Despite extensive optimization I have done, the video processing is not 100% accurate. We can still see at a few spots, non car windows were recognized as car windows. One of the tip given was the car training data contains very similar figures of the same car, so it is better to manually separate training and test data to void overfitting. I did that in L61 -111 of `vehicle_detection\svm_car_classify.py`, which slightly reduce the test accuracy, but does not solve the problem.
+There might be several limitation of this method: 1. the HOG features are not good enough to differentiate cars and non cars, 2. the training data set is too small, 3. SVM might not be a good enough for this problem. To make it more robust, I would like to include other features, more training data, as well as using other models, such as deep neural networks.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
 

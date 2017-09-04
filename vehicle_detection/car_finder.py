@@ -201,6 +201,7 @@ def car_multiple_detections(img, draw=False, save_path=None):
         plt.imshow(draw_img)
         plt.title('Car Positions', fontsize=18)
         fig.tight_layout()
+
         if save_path:
             plt.savefig(save_path)
         else:
@@ -209,7 +210,7 @@ def car_multiple_detections(img, draw=False, save_path=None):
 
 
 def test():
-    image_name = 'test5'
+    image_name = 'test3'
     image_path = cfg.join_path(cfg.line_finder['input'], image_name + '.jpg')
     img = mpimg.imread(image_path)
 

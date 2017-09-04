@@ -43,7 +43,7 @@ vehicle_detection = {
     'hog_channel': 'ALL',  # Can be 0, 1, 2, or "ALL",
     'spatial_size': None,
     'hist_bins': None,
-    'svc_file': "svc_pickle.p"
+    'svc_file': 'svc_pickle.p'
 }
 
 video_path = {
